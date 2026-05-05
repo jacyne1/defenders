@@ -16,3 +16,9 @@ func (s *MenuScene) Draw() {
 	rl.DrawText("Defender: Main Menu", 100, 100, 20, rl.White)
 	rl.DrawText("Press Enter to Start", 100, 150, 10, rl.Gray)
 }
+
+func (s *MenuScene) Enter() {
+
+}
+
+func (s *MenuScene) Exit() {}

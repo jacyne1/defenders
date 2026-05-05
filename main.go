@@ -14,13 +14,22 @@ func main() {
 		"game": &GameScene{},
 	}
 
-	currentScene := "menu"
+	currentKey := "menu"
+	activeScene := scenes[currentKey]
+	activeScene.Enter()
 
 	for !rl.WindowShouldClose() {
-		currentScene = scenes[currentScene].Update()
+		nextKey := activeScene.Update()
+
+		if nextKey != currentKey {
+			activeScene.Exit()
+			activeScene = scenes[nextKey]
+			activeScene.Enter()
+			currentKey = nextKey
+		}
 
 		rl.BeginDrawing()
-		scenes[currentScene].Draw()
+		activeScene.Draw()
 		rl.EndDrawing()
 	}
 }
