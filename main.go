@@ -11,7 +11,7 @@ func main() {
 
 	scenes := map[string]Scene{
 		"menu": &MenuScene{},
-		"game": &GameScene{},
+		"game": NewGameScene(),
 	}
 
 	currentKey := "menu"

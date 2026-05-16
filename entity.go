@@ -28,6 +28,7 @@ type Entity struct {
 	Health       int
 	MaxHealth    int
 	AttackDamage int
+	PointValue   int
 
 	Shield     *ShieldData
 	AmmoEffect AmmoType
@@ -68,22 +69,30 @@ func NewBasicCannon() *Entity {
 	}
 }
 
-func FilterActive(entities []*Entity) []*Entity {
-	active := entities[:0]
+func ManageEnemyActive(entities []Entity) {
+	for _, e := range entities {
+		if e.Position.Y < -2000 || e.Position.Y > screenHeight+100 || e.Position.X < -200 || e.Position.X > screenWidth+200 {
+			e.Active = false
+		}
+	}
+}
+
+func ManagePlayerActive(entities []*Entity) {
+	//active := entities[:0]
 	for _, e := range entities {
 		// Also deactivate if it's way off screen
-		if e.Position.Y < -200 || e.Position.Y > screenHeight+100 || e.Position.X < -200 || e.Position.X > screenWidth+200 {
+		if e.Position.Y < -100 || e.Position.Y > screenHeight+100 || e.Position.X < -100 || e.Position.X > screenWidth+100 {
 			e.Active = false
 		}
 
-		if e.Active {
-			active = append(active, e)
-		}
+		//if e.Active {
+		//	active = append(active, e)
+		//}
 	}
-	return active
+	//return active
 }
 
-func (e *Entity) TakeDamage(attacker *Entity, rawDamage int) {
+func (e *Entity) TakeDamage(attacker *Entity, rawDamage int) int {
 	finalDamage := rawDamage
 
 	// 1. Process Reductions / DefensiveHooks
@@ -104,5 +113,8 @@ func (e *Entity) TakeDamage(attacker *Entity, rawDamage int) {
 		for _, deathHook := range e.OnDeathHooks {
 			deathHook(e)
 		}
+		return e.PointValue
 	}
+
+	return 0
 }

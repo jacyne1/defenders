@@ -57,11 +57,11 @@ func MoveForward(e *Entity, dt float32) {
 	e.Position.Y += e.Velocity.Y * dt
 }
 
-func GetWaveManifest(waveNum int) []func(*GameScene, float32, float32) *Entity {
-	manifest := []func(*GameScene, float32, float32) *Entity{}
+func GetWaveManifest(s *GameScene, waveNum int) []func(float32, float32) {
+	manifest := make([]func(float32, float32), 0, 3+waveNum)
 
 	for i := 0; i < 3+waveNum; i++ {
-		manifest = append(manifest, NewBasicAlien)
+		manifest = append(manifest, s.NewBasicAlien)
 	}
 
 	return manifest
@@ -77,12 +77,12 @@ func CreateManifestSpawner(s *GameScene) func(*Entity, float32) {
 		// New wave ever 10 seconds
 		if timer >= 10.0 {
 
-			waveItems := GetWaveManifest(waveCount)
+			waveItems := GetWaveManifest(s, waveCount)
 			for _, spawnFunc := range waveItems {
 				x := float32(rl.GetRandomValue(50, screenWidth-50))
 				y := float32(rl.GetRandomValue(-1000, -50))
 
-				s.EnemyEntities = append(s.EnemyEntities, spawnFunc(s, x, y))
+				spawnFunc(x, y)
 			}
 
 			timer = 0
