@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"math"
 	"path/filepath"
 	"strconv"
 
@@ -17,17 +16,19 @@ const (
 )
 
 type GameScene struct {
-	PlayerEntities []*Entity
-	EnemyEntities  []Entity
-	Textures       map[string]rl.Texture2D
-	State          GameState
-	PlayerPoints   int
+	PlayerEntities   []*Entity
+	EnemyEntities    []Entity
+	PlayerProjecties []Entity
+	Textures         map[string]rl.Texture2D
+	State            GameState
+	PlayerPoints     int
 }
 
 func NewGameScene() *GameScene {
 	return &GameScene{
-		PlayerEntities: make([]*Entity, 0),
-		EnemyEntities:  make([]Entity, 100),
+		PlayerEntities:   make([]*Entity, 0),
+		EnemyEntities:    make([]Entity, 100),
+		PlayerProjecties: make([]Entity, 500),
 	}
 }
 
@@ -52,12 +53,17 @@ func (s *GameScene) Update() string {
 			s.calculateBehaviors(e, dt)
 		}
 
+		for i := range s.PlayerProjecties {
+			s.calculateBehaviors(&s.PlayerProjecties[i], dt)
+		}
+
 		for i := range s.EnemyEntities {
 			s.calculateBehaviors(&s.EnemyEntities[i], dt)
 		}
 
 		ManageEnemyActive(s.EnemyEntities)
 		ManagePlayerActive(s.PlayerEntities)
+		ManageProjectiles(s.PlayerProjecties)
 
 		s.CollisionSystem()
 	}
@@ -71,6 +77,10 @@ func (s *GameScene) Draw() {
 
 	for _, e := range s.PlayerEntities {
 		s.drawEntity(e)
+	}
+
+	for i := range s.PlayerProjecties {
+		s.drawEntity(&s.PlayerProjecties[i])
 	}
 
 	for i := range s.EnemyEntities {
@@ -95,7 +105,8 @@ func (s *GameScene) Enter() {
 		Active: true,
 		Class:  ClassNone,
 		Behaviors: []func(*Entity, float32){
-			CreateManifestSpawner(s),
+			//CreateManifestSpawner(s),
+			CreateCampaignSpawner(s),
 		},
 	}
 
@@ -148,22 +159,10 @@ func (s *GameScene) calculateBehaviors(e *Entity, dt float32) {
 
 }
 
-func CreateShootBehavior(s *GameScene) func(*Entity, float32) {
-	return func(e *Entity, dt float32) {
-		if rl.IsMouseButtonPressed(rl.MouseLeftButton) {
-			rad := float64(e.Rotation) * (math.Pi / 180)
-			barrelLength := float32(60)
-			spawnX := e.Position.X + float32(math.Cos(rad))*barrelLength
-			spawnY := e.Position.Y + float32(math.Sin(rad))*barrelLength
-			m := SpawnBasicMissle(s, rl.NewVector2(spawnX, spawnY), e.Rotation, "projectile")
-			s.PlayerEntities = append(s.PlayerEntities, m)
-		}
-	}
-}
-
 func (s *GameScene) CollisionSystem() {
 	// Check every player entity
-	for _, p := range s.PlayerEntities {
+	for i := range s.PlayerProjecties {
+		p := &s.PlayerProjecties[i]
 		if !p.Active || p.Class != ClassBullet {
 			continue
 		}

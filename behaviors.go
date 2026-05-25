@@ -30,7 +30,7 @@ func CreateZigZag() func(*Entity, float32) {
 
 // Drifts toward the center of the screen
 func SeekCenter(e *Entity, dt float32) {
-	if e.Position.X < 400 {
+	if e.Position.X < screenWidth/2 {
 		e.Position.X += 20 * dt
 	} else {
 		e.Position.X -= 20 * dt
@@ -76,17 +76,132 @@ func CreateManifestSpawner(s *GameScene) func(*Entity, float32) {
 
 		// New wave ever 10 seconds
 		if timer >= 10.0 {
+			spawnCount := 3 + waveCount
 
-			waveItems := GetWaveManifest(s, waveCount)
-			for _, spawnFunc := range waveItems {
-				x := float32(rl.GetRandomValue(50, screenWidth-50))
+			for i := 0; i < spawnCount; i++ {
+				x := float32(rl.GetRandomValue(150, screenWidth-50))
 				y := float32(rl.GetRandomValue(-1000, -50))
 
-				spawnFunc(x, y)
+				s.SpawnAlien(MobBasic, x, y)
 			}
 
 			timer = 0
 			waveCount++
 		}
 	}
+}
+
+func CreateShootBehavior(s *GameScene) func(*Entity, float32) {
+	return func(e *Entity, dt float32) {
+		if rl.IsMouseButtonPressed(rl.MouseLeftButton) {
+			rad := float64(e.Rotation) * (math.Pi / 180)
+			barrelLength := float32(60)
+			spawnX := e.Position.X + float32(math.Cos(rad))*barrelLength
+			spawnY := e.Position.Y + float32(math.Sin(rad))*barrelLength
+			s.SpawnBasicMissle(rl.NewVector2(spawnX, spawnY), e.Rotation, "projectile")
+		}
+	}
+}
+
+func CreateCampaignSpawner(s *GameScene) func(*Entity, float32) {
+	var currentLevel int = 0
+	var currentWave int = 0
+
+	var spawnTimer float32 = 0
+	var intermissionTimer float32 = 0
+	var totalSpawnedInWave int = 0
+	var isWaitingForNextWave bool = false
+
+	return func(e *Entity, dt float32) {
+		// Safety check: if player beat the final level, stop processing
+		if currentLevel >= len(GameCampaign) {
+			// Optional: Trigger game win screen here
+			return
+		}
+
+		levelData := GameCampaign[currentLevel]
+		waveData := levelData.Waves[currentWave]
+
+		// ----------------------------------------------------
+		// PHASE 1: SPAWNING THE WAVE
+		// ----------------------------------------------------
+
+		if totalSpawnedInWave < waveData.TotalToSpawn {
+			spawnTimer += dt
+			if spawnTimer >= waveData.SpawnRate {
+				spawnTimer = 0
+				totalSpawnedInWave++
+
+				// Coordinate Logic
+				x := float32(rl.GetRandomValue(150, screenWidth-50))
+				y := float32(rl.GetRandomValue(-200, -50))
+
+				chosenMobType := GetRandomMobType(waveData.MobPool)
+
+				s.SpawnAlien(chosenMobType, x, y)
+			}
+			return
+		}
+
+		// ----------------------------------------------------
+		// PHASE 2: ACTIVE COMBAT (Waiting for board clearance)
+		// ----------------------------------------------------
+
+		// Count how many are active right now
+		activeCount := 0
+		for i := range s.EnemyEntities {
+			if s.EnemyEntities[i].Active {
+				activeCount++
+			}
+		}
+
+		if activeCount == 0 && !isWaitingForNextWave {
+			isWaitingForNextWave = true
+			intermissionTimer = 0
+		}
+
+		// ----------------------------------------------------
+		// PHASE 3: INTERMISSION / LEVEL ADVANCEMENT
+		// ----------------------------------------------------
+
+		if isWaitingForNextWave {
+			intermissionTimer += dt
+
+			// Visual feedback using standard Raylib text functions
+			// e.g., rl.DrawText("WAVE COMPLETE!", X, Y, 20, rl.RayWhite)
+
+			if intermissionTimer >= waveData.IntermissionDelay {
+				// Reset internal counters for upcoming wave
+				isWaitingForNextWave = false
+				totalSpawnedInWave = 0
+				spawnTimer = 0
+
+				if currentWave < len(levelData.Waves)-1 {
+					currentWave++
+				} else {
+					currentLevel++
+					currentWave = 0
+				}
+			}
+		}
+	}
+}
+
+func GetRandomMobType(pool []WaveMobConfig) int {
+	totalWeight := 0
+	for i := range pool {
+		totalWeight += pool[i].Weight
+	}
+
+	randomValue := int(rl.GetRandomValue(0, int32(totalWeight-1)))
+
+	currentSum := 0
+
+	for i := range pool {
+		currentSum += pool[i].Weight
+		if randomValue < currentSum {
+			return pool[i].MobType
+		}
+	}
+	return pool[0].MobType
 }

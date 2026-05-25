@@ -78,18 +78,20 @@ func ManageEnemyActive(entities []Entity) {
 }
 
 func ManagePlayerActive(entities []*Entity) {
-	//active := entities[:0]
 	for _, e := range entities {
-		// Also deactivate if it's way off screen
+		// Deactivate if it's way off screen
 		if e.Position.Y < -100 || e.Position.Y > screenHeight+100 || e.Position.X < -100 || e.Position.X > screenWidth+100 {
 			e.Active = false
 		}
-
-		//if e.Active {
-		//	active = append(active, e)
-		//}
 	}
-	//return active
+}
+
+func ManageProjectiles(entities []Entity) {
+	for _, e := range entities {
+		if e.Position.Y < -2000 || e.Position.Y > screenHeight+100 || e.Position.X < -200 || e.Position.X > screenWidth+200 {
+			e.Active = false
+		}
+	}
 }
 
 func (e *Entity) TakeDamage(attacker *Entity, rawDamage int) int {
